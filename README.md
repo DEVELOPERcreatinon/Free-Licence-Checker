@@ -23,6 +23,7 @@ All source code files (except `config.json`) are licensed under the **Mozilla Pu
 
 - Python 3.11.9 (Tested version)
 - SQLite 3.35.0 or higher
+- OpenSSL (for manual SSL certificate generation)
 
 ## Installation
 
@@ -75,11 +76,144 @@ This script will:
 - Generate HMAC secrets for request signing
 - Create secure API keys
 
-### 2. Configuration File
+### 2. Generating SSL Certificates with OpenSSL (Windows)
 
-The `config.json` file contains all system settings. Key sections:
+#### Option A: Using Windows Subsystem for Linux (WSL)
+If you have WSL installed, OpenSSL is typically available:
 
-#### Server Configuration
+```bash
+# In WSL terminal
+openssl version
+# Should show: OpenSSL 3.0.x or similar
+
+# Generate private key and certificate
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
+
+# Copy to Windows directory (adjust path)
+cp cert.pem key.pem /mnt/c/path/to/your/project/
+```
+
+#### Option B: Using Git Bash
+Git for Windows includes OpenSSL:
+
+```bash
+# Open Git Bash
+cd /c/path/to/your/project
+
+# Generate private key and certificate
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
+```
+
+#### Option C: Using PowerShell with Chocolatey
+Install OpenSSL via Chocolatey package manager:
+
+```powershell
+# Install Chocolatey if not installed
+Set-ExecutionPolicy Bypass -Scope Process -Force
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+# Install OpenSSL
+choco install openssl
+
+# Generate certificate (after adding OpenSSL to PATH)
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
+```
+
+#### Option D: Using Windows Native OpenSSL (Manual Installation)
+
+1. Download OpenSSL for Windows from [slproweb.com/products/Win32OpenSSL.html](https://slproweb.com/products/Win32OpenSSL.html)
+2. Install to `C:\OpenSSL-Win64`
+3. Add to system PATH:
+   - Right-click "This PC" → Properties → Advanced system settings
+   - Environment Variables → System Variables → Path → Edit
+   - Add `C:\OpenSSL-Win64\bin`
+4. Generate certificates in Command Prompt:
+
+```cmd
+cd C:\path\to\your\project
+C:\OpenSSL-Win64\bin\openssl.exe req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
+```
+
+#### Option E: Generate Without OpenSSL (Python)
+Create a simple Python script `generate_ssl.py`:
+
+```python
+from cryptography import x509
+from cryptography.x509.oid import NameOID
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+from datetime import datetime, timedelta
+import os
+
+# Generate private key
+private_key = rsa.generate_private_key(
+    public_exponent=65537,
+    key_size=4096,
+)
+
+# Generate certificate
+subject = issuer = x509.Name([
+    x509.NameAttribute(NameOID.COUNTRY_NAME, u"US"),
+    x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"State"),
+    x509.NameAttribute(NameOID.LOCALITY_NAME, u"City"),
+    x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"Organization"),
+    x509.NameAttribute(NameOID.COMMON_NAME, u"localhost"),
+])
+
+cert = x509.CertificateBuilder().subject_name(
+    subject
+).issuer_name(
+    issuer
+).public_key(
+    private_key.public_key()
+).serial_number(
+    x509.random_serial_number()
+).not_valid_before(
+    datetime.utcnow()
+).not_valid_after(
+    datetime.utcnow() + timedelta(days=365)
+).add_extension(
+    x509.SubjectAlternativeName([x509.DNSName(u"localhost")]),
+    critical=False,
+).sign(private_key, hashes.SHA256())
+
+# Write private key
+with open("key.pem", "wb") as f:
+    f.write(private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption()
+    ))
+
+# Write certificate
+with open("cert.pem", "wb") as f:
+    f.write(cert.public_bytes(serialization.Encoding.PEM))
+
+print("SSL certificates generated: cert.pem and key.pem")
+```
+
+Run it:
+```bash
+python generate_ssl.py
+```
+
+### 3. Verify SSL Certificates
+
+Check if certificates are properly generated:
+
+```bash
+# Check certificate details
+openssl x509 -in cert.pem -text -noout
+
+# Verify key matches certificate
+openssl rsa -in key.pem -check
+```
+
+### 4. Configuration File
+
+Update your `config.json` to use the generated certificates:
+
 ```json
 "server": {
     "host": "0.0.0.0",
@@ -88,27 +222,6 @@ The `config.json` file contains all system settings. Key sections:
     "ssl_enabled": true,
     "ssl_cert_path": "cert.pem",
     "ssl_key_path": "key.pem"
-}
-```
-
-#### Security Settings
-```json
-"security": {
-    "api_key_required": true,
-    "api_keys": ["your_api_keys_here"],
-    "rate_limiting_enabled": true,
-    "max_requests_per_minute": 600,
-    "jwt_secret": "your_jwt_secret",
-    "hmac_secret": "your_hmac_secret"
-}
-```
-
-#### License Types
-```json
-"licensing": {
-    "license_types": ["BUSINESS", "PRO", "STUDENT"],
-    "key_length": 16,
-    "default_validity_days": 30
 }
 ```
 
@@ -124,11 +237,13 @@ The server will perform security checks and start on the configured host and por
 
 ### 2. Health Check
 
-Verify the server is running:
+Verify the server is running with SSL:
 
 ```bash
-curl https://localhost:5000/health
+curl -k https://localhost:5000/health
 ```
+
+Note: `-k` flag ignores self-signed certificate warnings. For production, use valid certificates.
 
 ## API Endpoints
 
@@ -240,6 +355,11 @@ Admin endpoints require JWT tokens with admin privileges.
 ### 5. IP Restrictions
 Configure allowed IPs to restrict access to specific networks.
 
+### 6. SSL Certificates
+- For development: Self-signed certificates are acceptable
+- For production: Obtain certificates from trusted Certificate Authorities (CA)
+- Consider using Let's Encrypt for free production certificates
+
 ## Database Schema
 
 The system uses two main tables:
@@ -290,15 +410,33 @@ Rate limiting is enabled by default:
 
 4. **SSL certificate errors**
    - Ensure `cert.pem` and `key.pem` exist in the project root
-   - Or disable SSL in `config.json`
+   - Or disable SSL in `config.json` by setting `"ssl_enabled": false`
 
-5. **HMAC signature errors**
-   - Ensure client and server use the same HMAC secret
-   - Verify data formatting matches exactly
+5. **OpenSSL not found on Windows**
+   - Use Git Bash (includes OpenSSL)
+   - Install via Chocolatey: `choco install openssl`
+   - Use the Python script alternative
+
+6. **Certificate generation errors**
+   - Ensure you have write permissions in the project directory
+   - Check that OpenSSL version is 1.1.1 or higher
+   - Try the Python-based certificate generation script
+
+7. **Browser SSL warnings**
+   - For development: Accept the self-signed certificate
+   - For testing: Add certificate to trusted store
+   - For production: Use valid certificates from a CA
 
 ### Checking Logs
 
 ```bash
+# Windows Command Prompt
+type license_server.log
+
+# PowerShell
+Get-Content license_server.log -Tail 50
+
+# Git Bash/Linux
 tail -f license_server.log
 ```
 
@@ -320,6 +458,24 @@ For production deployment, additional testing is recommended for:
 - Enable in `config.json`: `"backup_enabled": true`
 - Configure interval: `"backup_interval_hours": 24`
 
+### SSL Certificate Renewal
+Self-signed certificates expire after 365 days. To renew:
+
+```bash
+# Generate new certificates
+openssl req -x509 -newkey rsa:4096 -keyout key_new.pem -out cert_new.pem -days 365 -nodes -subj "/C=US/ST=State/L=City/O=Organization/CN=localhost"
+
+# Backup old certificates
+mv cert.pem cert.pem.backup
+mv key.pem key.pem.backup
+
+# Replace with new certificates
+mv cert_new.pem cert.pem
+mv key_new.pem key.pem
+
+# Restart server
+```
+
 ### Monitoring
 - Use `/health` endpoint for health checks
 - Monitor log files for errors
@@ -332,7 +488,15 @@ For issues or questions:
 2. Verify configuration in `config.json`
 3. Ensure all security keys are properly generated
 4. Review API documentation for correct request formats
+5. For SSL issues, verify certificates exist and are readable
 
 ## Version Compatibility
 
 This system is specifically tested with Python 3.11.9. Using other Python versions may require dependency adjustments or code modifications.
+
+## Additional Resources
+
+- [OpenSSL for Windows](https://slproweb.com/products/Win32OpenSSL.html)
+- [Let's Encrypt](https://letsencrypt.org/) - Free SSL certificates
+- [Chocolatey Package Manager](https://chocolatey.org/)
+- [Git for Windows](https://gitforwindows.org/) - Includes Git Bash with OpenSSL
