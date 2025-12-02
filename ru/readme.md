@@ -1,6 +1,6 @@
 # Система Сервера Лицензий
-![Русская версия](ru/readme.md)
-![Английская версия](readme.md)
+[Русская версия](ru/readme.md)
+[Английская версия](readme.md)
 ![Лицензия: MPL 2.0](https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg)
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-2.3.3-red.svg)
