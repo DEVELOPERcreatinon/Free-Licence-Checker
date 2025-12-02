@@ -5,6 +5,9 @@
 ![Flask](https://img.shields.io/badge/Flask-2.3.3-red.svg)
 ![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-green.svg)
 
+![Russian Version](ru/readme.md)
+![English Version](readme.md)
+
 ## Overview
 
 A secure and scalable license key management server built with Flask. This system provides robust license validation, key generation, and administration features with enterprise-grade security measures.
