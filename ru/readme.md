@@ -5,8 +5,7 @@
 ![Flask](https://img.shields.io/badge/Flask-2.3.3-red.svg)
 ![Статус: Готово к продакшену](https://img.shields.io/badge/Status-Production%20Ready-green.svg)
 
-[Русская версия](ru/readme.md)
-[Английская версия](README.md)
+[Английская версия](..README.md)
 
 ## Обзор
 
