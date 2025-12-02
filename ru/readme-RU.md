@@ -35,8 +35,8 @@
 ### 1. Клонируйте или скачайте проект
 
 ```bash
-git clone https://github.com/DEVELOPERcreatinon/Free-Licence-Checker.git
-cd Free-Licence-Checker
+git clone https://github.com/DEVELOPERcreatinon/Free-License-Checker.git
+cd Free-License-Checker
 ```
 
 ### 2. Создайте виртуальное окружение
