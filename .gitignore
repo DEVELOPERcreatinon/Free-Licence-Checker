@@ -2,10 +2,8 @@
 config.json
 *.db
 *.log
-cert.pem
-key.pem
-cmd_here.bat
-create_venv.bat
+*.pem
+*.bat
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
