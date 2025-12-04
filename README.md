@@ -4,6 +4,7 @@
 ![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-2.3.3-red.svg)
 ![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-green.svg)
+![Last Commit](https://img.shields.io/github/last-commit/DEVELOPERcreatinon/Free-License-Checker)
 
 
 ## Overview
