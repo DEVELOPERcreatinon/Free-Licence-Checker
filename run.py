@@ -10,7 +10,6 @@ import os
 import sys
 
 def main():
-    # Check for config.json existence
     if not os.path.exists('config.json'):
         print("Error: config.json not found!")
         print("Please create config.json first or run: python generate_keys.py")
