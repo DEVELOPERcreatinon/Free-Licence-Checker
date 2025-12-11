@@ -53,7 +53,7 @@ def generate_keys_locally():
             json.dump(all_keys, f, indent=2)
         print(f"\n💾 All keys saved to: {output_file}")
         
-        # Show usage example
+
         print(f"\n🔑 Example keys with prefixes:")
         for license_type in all_keys.keys():
             if all_keys[license_type]:
